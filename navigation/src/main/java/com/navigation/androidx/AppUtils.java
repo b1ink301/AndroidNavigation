@@ -61,7 +61,7 @@ public class AppUtils {
 
     public static Bitmap createBitmapFromView(View view) {
         view.clearFocus();
-        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(),view.getHeight(), Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
         if (bitmap != null) {
             Canvas canvas = new Canvas();
             canvas.setBitmap(bitmap);
@@ -83,12 +83,9 @@ public class AppUtils {
 
     public static int fetchContextColor(Context context, int androidAttribute) {
         TypedValue typedValue = new TypedValue();
-
         TypedArray a = context.obtainStyledAttributes(typedValue.data, new int[]{androidAttribute});
         int color = a.getColor(0, 0);
-
         a.recycle();
-
         return color;
     }
 
@@ -178,9 +175,6 @@ public class AppUtils {
 
     public static void setNavigationBarColor(final Window window, int color) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!isHuawei()) {
-                setNavigationBarStyle(window, !isBlackColor(color, 176));
-            }
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             window.setNavigationBarColor(color);
         }
@@ -197,6 +191,13 @@ public class AppUtils {
             }
             decorView.setSystemUiVisibility(systemUi);
         }
+    }
+
+    public static boolean isDarNavigationBarStyle(Window window) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return (window.getDecorView().getSystemUiVisibility() & View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR) != 0;
+        }
+        return false;
     }
 
     public static void setNavigationBarHidden(Window window, boolean hidden) {
@@ -328,29 +329,45 @@ public class AppUtils {
         return (window.getDecorView().getSystemUiVisibility() & View.SYSTEM_UI_FLAG_FULLSCREEN) != 0;
     }
 
-    public static void appendStatusBarPadding(View view, int viewHeight) {
+    public static void appendStatusBarPadding(Context context, View view) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (view != null) {
-                int statusBarHeight = getStatusBarHeight(view.getContext());
-                view.setPadding(view.getPaddingLeft(), statusBarHeight, view.getPaddingRight(), view.getPaddingBottom());
-                if (viewHeight > 0) {
-                    view.getLayoutParams().height = statusBarHeight + viewHeight;
-                } else {
-                    view.getLayoutParams().height = viewHeight;
+                int statusBarHeight = getStatusBarHeight(context);
+                ViewGroup.LayoutParams lp = view.getLayoutParams();
+                if (lp != null && lp.height > 0) {
+                    lp.height += statusBarHeight;//增高
                 }
+                view.setPadding(view.getPaddingLeft(), view.getPaddingTop() + statusBarHeight,
+                        view.getPaddingRight(), view.getPaddingBottom());
             }
         }
     }
 
-    public static void removeStatusBarPadding(View view, int viewHeight) {
+
+    public static void removeStatusBarPadding(Context context, View view) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (view != null) {
-                view.setPadding(view.getPaddingLeft(), 0, view.getPaddingRight(),
-                        view.getPaddingBottom());
-                view.getLayoutParams().height = viewHeight;
+                int statusBarHeight = getStatusBarHeight(context);
+                ViewGroup.LayoutParams lp = view.getLayoutParams();
+                if (lp != null && lp.height > 0) {
+                    lp.height -= statusBarHeight;//增高
+                }
+                view.setPadding(view.getPaddingLeft(), view.getPaddingTop() - statusBarHeight,
+                        view.getPaddingRight(), view.getPaddingBottom());
             }
         }
     }
+
+    public static void appendStatusBarMargin(Context context, View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            ViewGroup.LayoutParams lp = view.getLayoutParams();
+            if (lp instanceof ViewGroup.MarginLayoutParams) {
+                ((ViewGroup.MarginLayoutParams) lp).topMargin += getStatusBarHeight(context);//增高
+            }
+            view.setLayoutParams(lp);
+        }
+    }
+
 
     private static int statusBarHeight = -1;
 

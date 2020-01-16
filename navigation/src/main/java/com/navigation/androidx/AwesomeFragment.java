@@ -25,6 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import androidx.annotation.CallSuper;
+import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -36,6 +37,8 @@ import androidx.fragment.app.InternalFragment;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import static com.navigation.androidx.AppUtils.isHuawei;
 
 /**
  * Created by Listen on 2018/1/11.
@@ -58,7 +61,7 @@ public abstract class AwesomeFragment extends InternalFragment {
     protected Style style;
 
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         Activity activity = getActivity();
         if (!(activity instanceof PresentableActivity)) {
@@ -114,7 +117,7 @@ public abstract class AwesomeFragment extends InternalFragment {
 
     @Override
     @NonNull
-    public LayoutInflater onGetLayoutInflater(Bundle savedInstanceState) {
+    public LayoutInflater onGetLayoutInflater(@Nullable Bundle savedInstanceState) {
         if (getShowsDialog()) {
             setStyle(STYLE_NORMAL, R.style.Theme_Nav_FullScreenDialog);
         }
@@ -166,7 +169,7 @@ public abstract class AwesomeFragment extends InternalFragment {
             handleNavigationFragmentStuff(root);
         } else {
             setupDialog();
-            scheduleTaskAtStarted(this::animateIn);
+            animateIn();
         }
 
         if (getParentAwesomeFragment() == null || getShowsDialog()) {
@@ -188,7 +191,7 @@ public abstract class AwesomeFragment extends InternalFragment {
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         if (getView() != null && !callSuperOnViewCreated) {
             throw new IllegalStateException("you should call super when override `onViewCreated`");
@@ -648,16 +651,14 @@ public abstract class AwesomeFragment extends InternalFragment {
     @NonNull
     protected BarStyle preferredStatusBarStyle() {
         // Log.w(TAG, getDebugTag() + " #preferredStatusBarStyle");
-        AwesomeFragment childFragmentForStatusBarStyle = childFragmentForAppearance();
-        if (childFragmentForStatusBarStyle != null) {
-            return childFragmentForStatusBarStyle.preferredStatusBarStyle();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredStatusBarStyle();
         }
 
         if (getShowsDialog()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                Activity activity = requireActivity();
-                boolean isDark = (activity.getWindow().getDecorView().getSystemUiVisibility() & View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) != 0;
-                return isDark ? BarStyle.DarkContent : BarStyle.LightContent;
+                return AppUtils.isDarkStatusBarStyle(requireActivity().getWindow()) ? BarStyle.DarkContent : BarStyle.LightContent;
             }
         }
 
@@ -665,24 +666,22 @@ public abstract class AwesomeFragment extends InternalFragment {
     }
 
     protected boolean preferredStatusBarHidden() {
-        AwesomeFragment childFragmentForStatusBarHidden = childFragmentForAppearance();
-        if (childFragmentForStatusBarHidden != null) {
-            return childFragmentForStatusBarHidden.preferredStatusBarHidden();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredStatusBarHidden();
         }
 
         if (getShowsDialog()) {
-            Activity activity = requireActivity();
-            int activityWindowFlags = activity.getWindow().getAttributes().flags;
-            return (activityWindowFlags & WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0;
+            return AppUtils.isStatusBarHidden(requireActivity().getWindow());
         }
 
         return style.isStatusBarHidden();
     }
 
     protected int preferredStatusBarColor() {
-        AwesomeFragment childFragmentForStatusBarColor = childFragmentForAppearance();
-        if (childFragmentForStatusBarColor != null) {
-            return childFragmentForStatusBarColor.preferredStatusBarColor();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredStatusBarColor();
         }
 
         if (getShowsDialog()) {
@@ -692,12 +691,56 @@ public abstract class AwesomeFragment extends InternalFragment {
         return style.getStatusBarColor();
     }
 
+    protected boolean preferredStatusBarColorAlongWithToolbarColor() {
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredStatusBarColorAlongWithToolbarColor();
+        }
+        return true;
+    }
+
     protected boolean preferredStatusBarColorAnimated() {
-        AwesomeFragment childFragmentForStatusBarColor = childFragmentForAppearance();
-        if (childFragmentForStatusBarColor != null) {
-            return childFragmentForStatusBarColor.preferredStatusBarColorAnimated();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredStatusBarColorAnimated();
         }
         return getAnimation() != PresentAnimation.None && style.isStatusBarColorAnimated();
+    }
+
+    @ColorInt
+    @TargetApi(26)
+    protected int preferredNavigationBarColor() {
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredNavigationBarColor();
+        }
+
+        if (getShowsDialog()) {
+            if (getAnimationType() == AnimationType.Slide) {
+                return requireActivity().getWindow().getNavigationBarColor();
+            } else {
+                return Color.TRANSPARENT;
+            }
+        }
+
+        return style.getNavigationBarColor();
+    }
+
+    @NonNull
+    protected BarStyle preferredNavigationBarStyle() {
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredNavigationBarStyle();
+        }
+
+        if (getShowsDialog()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                return AppUtils.isDarNavigationBarStyle(requireActivity().getWindow()) ? BarStyle.DarkContent : BarStyle.LightContent;
+            }
+        }
+
+        return !isHuawei() &&
+                !AppUtils.isBlackColor(preferredNavigationBarColor(), 176) ? BarStyle.DarkContent : BarStyle.LightContent;
     }
 
     @Nullable
@@ -735,6 +778,7 @@ public abstract class AwesomeFragment extends InternalFragment {
             setStatusBarColor(Color.TRANSPARENT, animated);
         } else {
             int statusBarColor = preferredStatusBarColor();
+
             boolean shouldAdjustForWhiteStatusBar = !AppUtils.isBlackColor(statusBarColor, 176);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -745,7 +789,10 @@ public abstract class AwesomeFragment extends InternalFragment {
                 statusBarColor = Color.parseColor("#4A4A4A");
             }
 
-            if (!getShowsDialog() && isStatusBarTranslucent() && statusBarColor == preferredToolbarColor()) {
+            int toolbarColor = preferredToolbarColor();
+            animated = animated & statusBarColor != toolbarColor;
+
+            if (!getShowsDialog() && isStatusBarTranslucent() && statusBarColor == toolbarColor && preferredStatusBarColorAlongWithToolbarColor()) {
                 statusBarColor = Color.TRANSPARENT;
             }
 
@@ -753,52 +800,23 @@ public abstract class AwesomeFragment extends InternalFragment {
         }
     }
 
-    @Nullable
-    @TargetApi(26)
-    protected Integer preferredNavigationBarColor() {
-        AwesomeFragment childFragmentForAppearance = childFragmentForAppearance();
-        if (childFragmentForAppearance != null) {
-            return childFragmentForAppearance.preferredNavigationBarColor();
-        }
-        return style.getNavigationBarColor();
-    }
-
     public void setNeedsNavigationBarAppearanceUpdate() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return;
         }
 
-        if (getShowsDialog()) {
-            Integer color = preferredNavigationBarColor();
-            if (color != null) {
-                setNavigationBarColor(color);
-            } else {
-                if (getAnimationType() == AnimationType.Slide) {
-                    setNavigationBarColor(requireActivity().getWindow().getNavigationBarColor());
-                } else {
-                    setNavigationBarColor(Color.TRANSPARENT);
-                }
-            }
+        AwesomeFragment parent = getParentAwesomeFragment();
+        if (!getShowsDialog() && parent != null) {
+            parent.setNeedsNavigationBarAppearanceUpdate();
             return;
         }
 
-        AwesomeFragment parent = getParentAwesomeFragment();
-        if (parent != null) {
-            parent.setNeedsNavigationBarAppearanceUpdate();
-        } else {
-            Integer color = preferredNavigationBarColor();
-            if (color != null) {
-                setNavigationBarColor(color);
-            } else {
-                AwesomeFragment fragmentForColor = this;
-                AwesomeFragment child = fragmentForColor.childFragmentForAppearance();
-                while (child != null) {
-                    fragmentForColor = child;
-                    child = child.childFragmentForAppearance();
-                }
-                setNavigationBarColor(fragmentForColor.style.getScreenBackgroundColor());
-            }
-        }
+        setNavigationBarColor(preferredNavigationBarColor());
+        setNavigationBarStyle(preferredNavigationBarStyle());
+    }
+
+    public void setNavigationBarStyle(BarStyle barStyle) {
+        AppUtils.setNavigationBarStyle(getWindow(), barStyle == BarStyle.DarkContent);
     }
 
     public void setNavigationBarColor(int color) {
@@ -838,9 +856,9 @@ public abstract class AwesomeFragment extends InternalFragment {
         AwesomeToolbar toolbar = getAwesomeToolbar();
         if (toolbar != null) {
             if (translucent) {
-                appendStatusBarPadding(toolbar, getToolbarHeight());
+                appendStatusBarPadding(toolbar);
             } else {
-                removeStatusBarPadding(toolbar, getToolbarHeight());
+                removeStatusBarPadding(toolbar);
             }
         }
 
@@ -855,12 +873,12 @@ public abstract class AwesomeFragment extends InternalFragment {
         }
     }
 
-    public void appendStatusBarPadding(View view, int viewHeight) {
-        AppUtils.appendStatusBarPadding(view, viewHeight);
+    public void appendStatusBarPadding(View view) {
+        AppUtils.appendStatusBarPadding(requireContext(), view);
     }
 
-    public void removeStatusBarPadding(View view, int viewHeight) {
-        AppUtils.removeStatusBarPadding(view, viewHeight);
+    public void removeStatusBarPadding(View view) {
+        AppUtils.removeStatusBarPadding(requireContext(), view);
     }
 
     private SoftInputLayoutListener globalLayoutListener;
@@ -1055,6 +1073,7 @@ public abstract class AwesomeFragment extends InternalFragment {
         if (!(root instanceof DialogFrameLayout)) {
             return;
         }
+
         AnimationType type = getAnimationType();
         boolean shouldAnimated = type != AnimationType.None;
 
@@ -1068,6 +1087,7 @@ public abstract class AwesomeFragment extends InternalFragment {
                 setAnimationType(type);
             }
         }
+
         if (shouldAnimated) {
             DialogFrameLayout frameLayout = (DialogFrameLayout) root;
             View contentView = frameLayout.getChildAt(0);
@@ -1142,6 +1162,15 @@ public abstract class AwesomeFragment extends InternalFragment {
     }
 
     // ------ NavigationFragment -----
+    @NonNull
+    public NavigationFragment requireNavigationFragment() {
+        NavigationFragment navigationFragment = getNavigationFragment();
+        if (navigationFragment == null) {
+            throw new NullPointerException("NavigationFragment is null, make sure this fragment is wrapped in A NavigationFragment.");
+        }
+        return navigationFragment;
+    }
+
     @Nullable
     public NavigationFragment getNavigationFragment() {
         if (this instanceof NavigationFragment) {
@@ -1281,7 +1310,7 @@ public abstract class AwesomeFragment extends InternalFragment {
         }
 
         if (isStatusBarTranslucent()) {
-            appendStatusBarPadding(toolbar, getToolbarHeight());
+            appendStatusBarPadding(toolbar);
         }
 
         return toolbar;
@@ -1322,18 +1351,18 @@ public abstract class AwesomeFragment extends InternalFragment {
     }
 
     protected int preferredToolbarColor() {
-        AwesomeFragment childFragmentForToolbarColor = childFragmentForAppearance();
-        if (childFragmentForToolbarColor != null) {
-            return childFragmentForToolbarColor.preferredToolbarColor();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredToolbarColor();
         }
         return style.getToolbarBackgroundColor();
     }
 
 
     protected int preferredToolbarAlpha() {
-        AwesomeFragment childFragmentForToolbarColor = childFragmentForAppearance();
-        if (childFragmentForToolbarColor != null) {
-            return childFragmentForToolbarColor.preferredToolbarAlpha();
+        AwesomeFragment fragmentForAppearance = childFragmentForAppearance();
+        if (fragmentForAppearance != null) {
+            return fragmentForAppearance.preferredToolbarAlpha();
         }
         return (int) (style.getToolbarAlpha() * 255 + 0.5);
     }
@@ -1477,6 +1506,15 @@ public abstract class AwesomeFragment extends InternalFragment {
 
     // ------ TabBarFragment -------
 
+    @NonNull
+    public TabBarFragment requireTabBarFragment() {
+        TabBarFragment tabBarFragment = getTabBarFragment();
+        if (tabBarFragment == null) {
+            throw new NullPointerException("TabBarFragment is null, make sure this fragment is wrapped in a TabBarFragment.");
+        }
+        return tabBarFragment;
+    }
+
     @Nullable
     public TabBarFragment getTabBarFragment() {
         if (this instanceof TabBarFragment) {
@@ -1506,6 +1544,15 @@ public abstract class AwesomeFragment extends InternalFragment {
     }
 
     // ------ DrawerFragment -------
+
+    @NonNull
+    public DrawerFragment requireDrawerFragment() {
+        DrawerFragment drawerFragment = getDrawerFragment();
+        if (drawerFragment == null) {
+            throw new NullPointerException("DrawerFragment is null, make sure this fragment is wrapped in a DrawerFragment.");
+        }
+        return drawerFragment;
+    }
 
     @Nullable
     public DrawerFragment getDrawerFragment() {

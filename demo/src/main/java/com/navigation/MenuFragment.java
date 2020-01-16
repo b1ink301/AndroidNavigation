@@ -14,6 +14,7 @@ import com.navigation.androidx.TabBarFragment;
 import com.navigation.dialog.DialogEntryFragment;
 import com.navigation.sharedelement.GridFragment;
 import com.navigation.toolbar.CoordinatorFragment;
+import com.navigation.toolbar.SearchFragment;
 import com.navigation.toolbar.ToolbarColorTransitionFragment;
 import com.navigation.toolbar.ViewPagerFragment;
 
@@ -35,33 +36,38 @@ public class MenuFragment extends AwesomeFragment {
         tagView.setText(getDebugTag());
 
         root.findViewById(R.id.toolbar_color_transition).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new ToolbarColorTransitionFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new ToolbarColorTransitionFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         root.findViewById(R.id.coordinator).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new CoordinatorFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new CoordinatorFragment());
+            requireDrawerFragment().closeMenu();
+        });
+
+        root.findViewById(R.id.search).setOnClickListener(v -> {
+            requireNavigationFragment().pushFragment(new SearchFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         root.findViewById(R.id.view_pager).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new ViewPagerFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new ViewPagerFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         root.findViewById(R.id.shared_element).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new GridFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new GridFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         root.findViewById(R.id.web).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new WebFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new WebFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         root.findViewById(R.id.dialog).setOnClickListener(v -> {
-            getNavigationFragment().pushFragment(new DialogEntryFragment());
-            getDrawerFragment().closeMenu();
+            requireNavigationFragment().pushFragment(new DialogEntryFragment());
+            requireDrawerFragment().closeMenu();
         });
 
         return root;
@@ -81,9 +87,9 @@ public class MenuFragment extends AwesomeFragment {
     private void changeRootViewTopPadding(boolean translucent) {
         if (AppUtils.isCutout(requireActivity())) {
             if (translucent) {
-                appendStatusBarPadding(getView(), getView().getLayoutParams().height );
+                appendStatusBarPadding(getView() );
             } else {
-                removeStatusBarPadding(getView(), getView().getLayoutParams().height);
+                removeStatusBarPadding(getView());
             }
         }
     }

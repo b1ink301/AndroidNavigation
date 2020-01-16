@@ -65,7 +65,7 @@ public class CustomStatusBarFragment extends BaseFragment implements CompoundBut
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         toolbar.setNavigationIcon(style.getBackIcon());
-        toolbar.setNavigationOnClickListener(v -> getNavigationFragment().popFragment());
+        toolbar.setNavigationOnClickListener(v -> requireNavigationFragment().popFragment());
     }
 
     int statusBarColor = Color.MAGENTA;
@@ -124,9 +124,9 @@ public class CustomStatusBarFragment extends BaseFragment implements CompoundBut
                 break;
             case R.id.adjust:
                 if (isChecked) {
-                    appendStatusBarPadding(toolbar, getToolbarHeight());
+                    appendStatusBarPadding(toolbar);
                 } else {
-                    removeStatusBarPadding(toolbar, getToolbarHeight());
+                    removeStatusBarPadding(toolbar);
                 }
                 break;
         }
