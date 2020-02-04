@@ -1,6 +1,7 @@
 package com.navigation.androidx;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -11,7 +12,10 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
-import androidx.customview.widget.ViewDragHelper;
+//import androidx.customview.widget.ViewDragHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Listen on 2018/7/1.
@@ -102,6 +106,9 @@ public class SwipeBackLayout extends FrameLayout {
         final float minVelocity = MIN_FLING_VELOCITY * density;
         mDragHelper.setMinVelocity(minVelocity);
         mDragHelper.setEdgeTrackingEnabled(ViewDragHelper.EDGE_LEFT);
+
+        mDragHelper.setEdgeSize(AppUtils.getScreenWidth(context)/2);
+        mShadowLeft = getResources().getDrawable(R.drawable.shadow_left);
     }
 
     public void setTabBar(Drawable drawable) {
@@ -200,9 +207,22 @@ public class SwipeBackLayout extends FrameLayout {
 
         if (mScrimOpacity > 0 && drawContent
                 && mDragHelper.getViewDragState() != ViewDragHelper.STATE_IDLE) {
+            drawShadow(canvas, child);
             drawScrim(canvas, child);
         }
         return ret;
+    }
+
+    private Rect mTmpRect = new Rect();
+    private Drawable mShadowLeft;
+    private void drawShadow(Canvas canvas, View child) {
+        final Rect childRect = mTmpRect;
+        child.getHitRect(childRect);
+
+        mShadowLeft.setBounds(childRect.left - mShadowLeft.getIntrinsicWidth(), childRect.top,
+                childRect.left, childRect.bottom);
+        mShadowLeft.setAlpha((int) (mScrimOpacity * FULL_ALPHA));
+        mShadowLeft.draw(canvas);
     }
 
     private void drawScrim(Canvas canvas, View child) {
